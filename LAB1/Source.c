@@ -17,7 +17,7 @@ int flag;
 
 double i = 0;
 double j = 300;
-
+ 
 
 double trigger = 0;
 int ruch = 0;
