@@ -5,12 +5,26 @@
 #include <allegro5\allegro_primitives.h>
 #include <math.h>
 
-#define screen_width 1920
-#define screen_height 1080
+#define screen_width 1280
+#define screen_height 1024
 #define step 0.2
 #define dash 500
-#define ratio 10000
+#define ratio 5000
 #define radius 400
+
+struct enemy {
+	int istnienie;
+	double x;
+	double y;
+	double speed_x;
+	double speed_y;
+	int typ;
+	double przyspieszenie_x;
+	double przyspieszenie_y;
+	double odleglosc;
+};
+
+typedef struct enemy enemy;
 
 int flag;
 
@@ -18,10 +32,10 @@ int flag;
 double i = 0;
 double j = 300;
  
-
+int bylo = 0;
 double trigger = 0;
 int ruch = 0;
-double cooldown = 200;
+double cooldown = 120;
 double speed_x,speed_y;
 double obecna_pozycja_x;
 double obecna_pozycja_y;
@@ -38,6 +52,11 @@ double cut_start_y;
 double cut_end_x;
 double cut_end_y;
 double odleglosc;
+double A, B , C;
+double test_promien;
+
+enemy enemies[16];
+int ilosc_enemies=0;
 
 
 void DoLogic(ALLEGRO_KEYBOARD_STATE stan, ALLEGRO_TIMER * timer , ALLEGRO_MOUSE_STATE mysz){
@@ -46,10 +65,15 @@ void DoLogic(ALLEGRO_KEYBOARD_STATE stan, ALLEGRO_TIMER * timer , ALLEGRO_MOUSE_
 	speed_x = (i - obecna_pozycja_x) / ALLEGRO_BPS_TO_SECS(60);
 	speed_y = (j - obecna_pozycja_y) / ALLEGRO_BPS_TO_SECS(60);
 
+
 	obecna_pozycja_x = i;
 	obecna_pozycja_y = j;
 	
-
+	int k;
+	if(al_get_timer_count(timer)%119==0){
+		bylo = 0;
+	}
+		
 
 	if (ruch == 1) {
 		switch (flag) {
@@ -87,35 +111,224 @@ void DoLogic(ALLEGRO_KEYBOARD_STATE stan, ALLEGRO_TIMER * timer , ALLEGRO_MOUSE_
 		ciecie =  1;
 		cut_start_x = mysz.x;
 		cut_start_y = mysz.y;
+		
 	}
 
-	if ((!mysz.buttons == 1|| !(pow(mysz.x - i-50, 2) + pow(mysz.y - j - 50, 2)<pow(radius, 2))) && ciecie == 1) {
-		ciecie = 0;
-		cut_end_x = mysz.x;
-		cut_end_y = mysz.y;
-		if (((pozx > cut_start_x-60 && pozx < cut_end_x+60) || (pozx < cut_start_x+60 && pozx > cut_end_x-60)) && ((pozy > cut_start_y-60 && pozy < cut_end_y+60) || (pozy < cut_start_y+60 && pozy > cut_end_y-60))) {
-			double A = cut_start_x - cut_end_x, B = cut_end_y - cut_start_y, 
-			odleglosc = abs((A*(cut_start_x - pozx) + B*(pozy - cut_start_y)) / sqrt(A*A + B*B));
-			if (odleglosc < 120) {
-				przeciwnik = 0;
+	if (ciecie == 1) {
+		for (k = 0; k < 16; k++) {
+			if (enemies[k].istnienie == 1) {
+				if (((enemies[k].x > cut_start_x - 60 && enemies[k].x < mysz.x + 60) || (enemies[k].x < cut_start_x + 60 && enemies[k].x > mysz.x - 60)) && ((enemies[k].y > cut_start_y - 60 && enemies[k].y < mysz.y + 60) || (enemies[k].y < cut_start_y + 60 && enemies[k].y > mysz.y - 60))) {
+					A = mysz.y - cut_start_y;
+					B = cut_start_x - mysz.x;
+					C = cut_start_y*mysz.x - mysz.y*cut_start_x;
+					enemies[k].odleglosc = abs(A*enemies[k].x + B*enemies[k].y + C) / sqrt(A*A + B*B);
+				}
 			}
 		}
 	}
 
-	//KAMIEÑ
-	if (przeciwnik == 1) {
-		pozx += kamien_speed_x;
-		pozy += kamien_speed_y;
-		if (pozx < 0 || pozx > screen_width || pozy < 0 || pozy > screen_height) {
-			przeciwnik = 0;
+	if ((!mysz.buttons == 1 || !(pow(mysz.x - i-50, 2) + pow(mysz.y - j - 50, 2)<pow(radius, 2))) && ciecie == 1) {
+		ciecie = 0;
+		for (k = 0; k < 16; k++) {
+			if (enemies[k].istnienie == 1) {
+				if (enemies[k].odleglosc < 55) {
+					enemies[k].istnienie = 0;
+					enemies[k].odleglosc = 999;
+					if (enemies[k].typ == 1) {
+						int p,r;
+						for (p = 0; p < 4; p++) {
+							r = 0;
+							while (enemies[r].istnienie == 1) {
+								r++;
+							}
+
+							enemies[r].istnienie = 1;
+							enemies[r].x = enemies[k].x;
+							enemies[r].y = enemies[k].y;
+							enemies[r].typ = 0;
+							switch (p) {
+								case 0: 
+									enemies[r].speed_x = step;
+									enemies[r].speed_y = step;
+									break;
+								case 1:
+									enemies[r].speed_x = step;
+									enemies[r].speed_y = -step;
+									break;
+								case 2:
+									enemies[r].speed_x = -step;
+									enemies[r].speed_y = -step;
+									break;
+								case 3:
+									enemies[r].speed_x = -step;
+									enemies[r].speed_y = step;
+									break;
+
+							}
+						}
+
+						ilosc_enemies += 4;
+					}
+					ilosc_enemies--;
+				}
+			}
 		}
 	}
 
-	if (al_key_down(&stan, ALLEGRO_KEY_SPACE) && przeciwnik==0){
-		przeciwnik = 1;
-		kamien_speed_x = (i - pozx)/ratio;
-		kamien_speed_y = (j - pozy)/ratio;
+	//KAMIEÑ pojedynczy stare
 
+	if (przeciwnik == 1) {
+		pozx += kamien_speed_x;
+		if (j - pozy>0) {
+			pozy = sqrt(test_promien*test_promien - pozx*pozx);
+		}
+		else {
+			pozy = -sqrt(test_promien*test_promien - pozx*pozx);
+
+		}
+				if (pozx < 0 || pozx > screen_width || pozy < 0 || pozy > screen_height) {
+			przeciwnik = 0;
+			pozx = 0;
+			pozy = 0;
+		}
+	}
+
+	//ruch przeciwnikow i anihilacja
+
+	if (ilosc_enemies > 0) {	
+		for (k = 0; k < 16; k++) {
+			if (enemies[k].istnienie == 1 && enemies[k].typ==0) {
+
+				enemies[k].x += enemies[k].speed_x;
+				enemies[k].y += enemies[k].speed_y;
+
+				if (enemies[k].x < 0 || enemies[k].x > screen_width || enemies[k].y < 0 || enemies[k].y > screen_height) {
+					enemies[k].istnienie = 0;
+					ilosc_enemies--;
+					
+				}
+			}
+
+			if (enemies[k].istnienie == 1 && enemies[k].typ == 1) {
+		
+				enemies[k].x += enemies[k].speed_x;
+				enemies[k].y += enemies[k].speed_y;
+
+				if (enemies[k].x < 0 || enemies[k].x > screen_width || enemies[k].y < 0 || enemies[k].y > screen_height) {
+					enemies[k].istnienie = 0;
+					ilosc_enemies--;
+
+				}
+			}
+		}
+	}
+
+
+	//Inicjalizacja przeciwnika
+
+
+
+	if ((int)al_get_timer_count(timer) % 120 == 0 && ilosc_enemies < 16 && bylo == 0) {
+			k=0;
+		while (enemies[k].istnienie == 1) {
+			k++;
+		}
+		enemies[k].istnienie = 1;
+		switch(rand() % 4) {
+		case 0: enemies[k].y = 0;
+			    enemies[k].x = rand() % screen_width;
+				enemies[k].speed_x = (i - enemies[k].x) / ratio;
+				enemies[k].speed_y =  j  / ratio;
+				enemies[k].typ = rand()%2;
+				enemies[k].odleglosc = 999;
+				break;
+
+		case 1: enemies[k].y = rand() %screen_height;
+				enemies[k].x = screen_width;
+				enemies[k].speed_x = (i - enemies[k].x) / ratio;
+				enemies[k].speed_y = (j - enemies[k].y) / ratio;
+				enemies[k].typ = rand() % 2;
+				enemies[k].odleglosc = 999;
+				break;
+		case 2:
+				enemies[k].y = screen_height;
+				enemies[k].x = rand()%screen_width;
+				enemies[k].speed_x = (i - enemies[k].x) / ratio;
+				enemies[k].speed_y = (j - enemies[k].y) / ratio;
+				enemies[k].typ = rand() % 2;
+				enemies[k].odleglosc = 999;
+				break;
+			
+		case 3:
+				enemies[k].y = rand()%screen_height;
+				enemies[k].x = 0;
+				enemies[k].speed_x = (i - enemies[k].x) / ratio;
+				enemies[k].speed_y = (j - enemies[k].y) / ratio;
+				enemies[k].typ = rand() % 2;
+				enemies[k].odleglosc = 999;
+				break;
+		}
+		ilosc_enemies++;
+		bylo = 1;
+	}
+
+	// inicjalizacja przeciwnika lecacego grawitacyjnie
+
+	/*if ((int)al_get_timer_count(timer) % 120 == 0 && ilosc_enemies < 16) {
+		k = 0;
+		while (enemies[k].istnienie == 1) {
+			k++;
+		}
+		enemies[k].istnienie = 1;
+		switch (rand() % 4) {
+		case 0: 
+			enemies[k].y = 0;
+			enemies[k].x = rand() % screen_width;
+			enemies[k].speed_x = (i - enemies[k].x) / ratio;
+			enemies[k].speed_y = (j - enemies[k].y) / ratio;
+			enemies[k].typ = 1;
+			enemies[k].odleglosc = 999;
+			break;
+
+		case 1: 
+			enemies[k].y = rand() % screen_height;
+			enemies[k].x = screen_width;
+			enemies[k].speed_x = (i - enemies[k].x) / ratio;
+			enemies[k].speed_y = (j - enemies[k].y) / ratio;
+			enemies[k].typ = 1;
+			enemies[k].odleglosc = 999;
+			break;
+		case 2:
+			enemies[k].y = screen_height;
+			enemies[k].x = rand() % screen_width;
+			enemies[k].speed_x = (i - enemies[k].x) / ratio;
+			enemies[k].speed_y = (j - enemies[k].y) / ratio;
+			enemies[k].typ = 1;
+			enemies[k].odleglosc = 999;
+			break;
+
+		case 3:
+			enemies[k].y = rand() % screen_height;
+			enemies[k].x = 0;
+			enemies[k].speed_x = (i - enemies[k].x) / ratio;
+			enemies[k].speed_y = (j - enemies[k].y) / ratio;
+			enemies[k].typ = 1;
+			enemies[k].odleglosc = 999;
+			break;
+		}
+		ilosc_enemies++;
+		bylo = 1;
+	}
+	*/
+
+	if (al_key_down(&stan, ALLEGRO_KEY_SPACE) && przeciwnik==0){
+
+		przeciwnik = 1;
+		test_promien = sqrt(pow(i - pozx, 2) + pow(j - pozy, 2));
+		if (i - pozx < 0) {
+			kamien_speed_x = -0.1;
+		}else
+		kamien_speed_x = 0.1;
 
 	}
 
@@ -235,14 +448,7 @@ int main(void) {
 	al_convert_mask_to_alpha(kamien, al_map_rgb(255, 255, 255));
 
 
-
-
-
-	
-
-	al_flip_display();
- 
-	
+	srand(time(NULL));
 	
 
 	al_get_keyboard_state(&stan);
@@ -267,12 +473,12 @@ int main(void) {
 			lag -= ALLEGRO_BPS_TO_SECS(60);
 		}
 
-
+		al_draw_textf(comic, al_map_rgb(255, 0, 0), 1500, 1000, ALLEGRO_ALIGN_LEFT, "ilosc %i",  ilosc_enemies);
 		al_draw_textf(comic, al_map_rgb(255, 0, 0), 0, 0, ALLEGRO_ALIGN_LEFT, "Timer %i", al_get_timer_count(timer));
-		al_draw_textf(comic, al_map_rgb(255, 0, 0), 0, 1000, ALLEGRO_ALIGN_LEFT, "Trigger %f",trigger);
+		al_draw_textf(comic, al_map_rgb(255, 0, 0), 0, 1000, ALLEGRO_ALIGN_LEFT, "testpromien %f",test_promien);
 		al_draw_textf(comic, al_map_rgb(255, 0, 0), 500, 1000, ALLEGRO_ALIGN_LEFT, "Speed X %f", speed_x);
 		al_draw_textf(comic, al_map_rgb(255, 0, 0), 900, 1000, ALLEGRO_ALIGN_LEFT, "Speed Y %f ", speed_y);
-		al_draw_textf(comic, al_map_rgb(255, 0, 0), 1500, 1000, ALLEGRO_ALIGN_LEFT, "odleglosc %f", odleglosc);
+		
 
 		al_draw_filled_rectangle(0, screen_height/10, screen_width, screen_height - screen_height / 10, al_map_rgb(255, 255, 255));
 		
@@ -281,6 +487,15 @@ int main(void) {
 
 		if (ciecie == 1) {
 			al_draw_line(cut_start_x, cut_start_y, mysz.x, mysz.y, al_map_rgb((al_get_timer_count(timer)+100)%255, al_get_timer_count(timer) % 255, al_get_timer_count(timer) % 255),10);
+		}
+
+		if (ilosc_enemies > 0) {
+			int l;
+			for (l = 0; l < 16; l++) {
+				if (enemies[l].istnienie == 1) {
+					al_draw_scaled_rotated_bitmap(kamien, 200, 200, enemies[l].x, enemies[l].y, 0.25, 0.25, enemies[l].x/60, NULL);
+				}
+			}
 		}
 
 		if (przeciwnik == 1) {
