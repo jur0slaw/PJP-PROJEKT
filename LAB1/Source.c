@@ -5,11 +5,11 @@
 #include <allegro5\allegro_primitives.h>
 #include <math.h>
 
-#define screen_width 1280
-#define screen_height 1024
+#define screen_width 1920
+#define screen_height 1080
 #define step 0.2
 #define dash 500
-#define ratio 5000
+#define ratio 3000
 #define radius 400
 
 struct enemy {
@@ -26,12 +26,12 @@ struct enemy {
 
 typedef struct enemy enemy;
 
-int flag;
+int flag, last_flag;
 
 
-double i = 0;
-double j = 300;
- 
+double i = screen_width*0.5;
+double j = screen_height*0.5;
+
 int bylo = 0;
 double trigger = 0;
 int ruch = 0;
@@ -61,16 +61,28 @@ int ilosc_enemies=0;
 
 void DoLogic(ALLEGRO_KEYBOARD_STATE stan, ALLEGRO_TIMER * timer , ALLEGRO_MOUSE_STATE mysz){
 
+	if (i<0) {
+		speed_x = 0.001;
+	}
 
-	speed_x = (i - obecna_pozycja_x) / ALLEGRO_BPS_TO_SECS(60);
-	speed_y = (j - obecna_pozycja_y) / ALLEGRO_BPS_TO_SECS(60);
+	if (i > screen_width-100) {
+		speed_x = -0.001;
+	}
 
+	if (j<0 ) {
+		speed_y = 0.001;
+	}
 
-	obecna_pozycja_x = i;
-	obecna_pozycja_y = j;
+	if (j>screen_height-100) {
+		speed_y = -0.001;
+	}
+
+	i += speed_x;
+	j += speed_y;
 	
+
 	int k;
-	if(al_get_timer_count(timer)%119==0){
+	if(al_get_timer_count(timer)%59==0){
 		bylo = 0;
 	}
 		
@@ -83,7 +95,8 @@ void DoLogic(ALLEGRO_KEYBOARD_STATE stan, ALLEGRO_TIMER * timer , ALLEGRO_MOUSE_
 			if (dystans >= max) {
 				dystans = 0;
 				ruch = 0;
-				flag = 0;
+				flag = -1;
+				
 				break;
 
 			}
@@ -94,7 +107,8 @@ void DoLogic(ALLEGRO_KEYBOARD_STATE stan, ALLEGRO_TIMER * timer , ALLEGRO_MOUSE_
 			if (dystans >= max) {
 				dystans = 0;
 				ruch = 0;
-				flag = 0;
+				flag = -1;
+				
 				break;
 
 			}
@@ -228,7 +242,7 @@ void DoLogic(ALLEGRO_KEYBOARD_STATE stan, ALLEGRO_TIMER * timer , ALLEGRO_MOUSE_
 
 
 
-	if ((int)al_get_timer_count(timer) % 120 == 0 && ilosc_enemies < 16 && bylo == 0) {
+	if ((int)al_get_timer_count(timer) % 60 == 0 && ilosc_enemies < 16 && bylo == 0) {
 			k=0;
 		while (enemies[k].istnienie == 1) {
 			k++;
@@ -348,14 +362,14 @@ void DoLogic(ALLEGRO_KEYBOARD_STATE stan, ALLEGRO_TIMER * timer , ALLEGRO_MOUSE_
 	}
 
 	if (al_key_down(&stan, ALLEGRO_KEY_W) && j>=0 && ruch == 0) {
-		j -= 1.5*step;
+		speed_y -= 1.5*step/ratio;
 		//flag = 1;
 		//trigger = 500.0;
 	}
 
 
 	if (al_key_down(&stan, ALLEGRO_KEY_S) && j <= screen_height-100 && ruch == 0) {
-		j += 1.5*step;
+		speed_y += 1.5*step/ratio;
 		//flag = 2;
 		//trigger = 500.0;
 	}
@@ -363,15 +377,17 @@ void DoLogic(ALLEGRO_KEYBOARD_STATE stan, ALLEGRO_TIMER * timer , ALLEGRO_MOUSE_
 
 	if (al_key_down(&stan, ALLEGRO_KEY_D) && i <= screen_width-100 && ruch == 0) {
 		
-		i += step ;
+		speed_x += step/ratio ;
 		flag = 3;
+		last_flag = 1;
 		trigger = 500.0;
 	}
 
 
 	if (al_key_down(&stan, ALLEGRO_KEY_A) && i >= 0 && ruch == 0) {
-		i -= step ;
+		speed_x -= step/ratio ;
 		flag = 4;
+		last_flag = 2;
 		trigger = 500.0;
 	}
 
@@ -401,10 +417,12 @@ void DoLogic(ALLEGRO_KEYBOARD_STATE stan, ALLEGRO_TIMER * timer , ALLEGRO_MOUSE_
 
 	if (trigger > 0 && ruch == 0 ) {
 		trigger -= 0.8;
+	
 		
 	}
 	if (trigger <= 0) {
-		flag = 0;
+		
+		flag = -1;
 	 }
 }
 
@@ -439,14 +457,18 @@ int main(void) {
 	
 
 	ALLEGRO_FONT *comic = al_load_ttf_font("comic.ttf", 40, NULL);
-	ALLEGRO_BITMAP *kappa = al_load_bitmap("kappa.jpg");
+	ALLEGRO_BITMAP *kappa = al_load_bitmap("epik.png");
 	ALLEGRO_BITMAP *kamien = al_load_bitmap("rock.png");
+	ALLEGRO_BITMAP *background = al_load_bitmap("background.jpg");
+	ALLEGRO_BITMAP *celownik = al_load_bitmap("celownik.png");
+	ALLEGRO_BITMAP *region;
+
 	ALLEGRO_KEYBOARD_STATE stan;
 	ALLEGRO_MOUSE_STATE mysz;
 	ALLEGRO_TIMER *timer = al_create_timer(ALLEGRO_BPS_TO_SECS(60));
 	al_convert_mask_to_alpha(kappa, al_map_rgb(255, 255, 255));
 	al_convert_mask_to_alpha(kamien, al_map_rgb(255, 255, 255));
-
+	al_convert_mask_to_alpha(celownik, al_map_rgb(0, 0, 0));
 
 	srand(time(NULL));
 	
@@ -454,6 +476,7 @@ int main(void) {
 	al_get_keyboard_state(&stan);
 	al_start_timer(timer);
 	al_get_mouse_state(&mysz);
+	al_hide_mouse_cursor(okno);
 
 	double lag = 0;
 	double previous = al_get_timer_count(timer);
@@ -473,16 +496,40 @@ int main(void) {
 			lag -= ALLEGRO_BPS_TO_SECS(60);
 		}
 
-		al_draw_textf(comic, al_map_rgb(255, 0, 0), 1500, 1000, ALLEGRO_ALIGN_LEFT, "ilosc %i",  ilosc_enemies);
+		al_draw_textf(comic, al_map_rgb(255, 0, 0), 1500, 1000, ALLEGRO_ALIGN_LEFT, "flaga %i", flag);
 		al_draw_textf(comic, al_map_rgb(255, 0, 0), 0, 0, ALLEGRO_ALIGN_LEFT, "Timer %i", al_get_timer_count(timer));
 		al_draw_textf(comic, al_map_rgb(255, 0, 0), 0, 1000, ALLEGRO_ALIGN_LEFT, "testpromien %f",test_promien);
 		al_draw_textf(comic, al_map_rgb(255, 0, 0), 500, 1000, ALLEGRO_ALIGN_LEFT, "Speed X %f", speed_x);
 		al_draw_textf(comic, al_map_rgb(255, 0, 0), 900, 1000, ALLEGRO_ALIGN_LEFT, "Speed Y %f ", speed_y);
 		
 
-		al_draw_filled_rectangle(0, screen_height/10, screen_width, screen_height - screen_height / 10, al_map_rgb(255, 255, 255));
+	
 		
-		al_draw_bitmap(kappa, i , j, NULL);
+		al_draw_bitmap_region(background, 0.5*al_get_bitmap_width(background)-0.5*screen_width+(i-screen_width*0.5)*((fabs(i - screen_width*0.5)/screen_width*0.5)), 0.5*al_get_bitmap_height(background) - 0.5*screen_height + (j - screen_height * 0.5)*((fabs(j-screen_height*0.5)/screen_height*0.5)), screen_width, screen_height, 0, 0, NULL);
+		
+		al_draw_textf(comic, al_map_rgb(255, 0, 0), 1500, 1000, ALLEGRO_ALIGN_LEFT, "flaga %i", last_flag);
+		float height = al_get_bitmap_height(kappa);
+		float width = al_get_bitmap_width(kappa);
+		
+
+		
+		switch (flag%4) {
+		case -1: switch (last_flag) {
+					case 1: al_draw_scaled_bitmap(kappa, 0, 0, width / 7, height / 2, i - 80, j - 32, 250, 125, NULL);
+						break;
+					case 2: al_draw_scaled_bitmap(kappa, 0, height/2, width / 7, height / 2, i - 80, j - 32, 250, 125, NULL);
+						break;
+			}
+				break;
+			case 3:	al_draw_scaled_bitmap(kappa, width*(1 + (al_get_timer_count(timer) / 10) % 6) / 7, 0, width / 7, height / 2, i - 80, j - 32, 250, 125, NULL);
+				break;
+			case 0:    al_draw_scaled_bitmap(kappa, width*(1 + (al_get_timer_count(timer) / 10) % 6) / 7, height / 2, width / 7, height / 2, i - 80, j - 32, 250, 125, NULL);
+				break;
+		}
+		
+
+		//al_draw_scaled_bitmap(kappa, 0, 0, width / 7, height / 2, i, j, 180, 100, NULL);
+		
 		al_draw_circle(i + 50, j + 50, radius, al_map_rgb(100, 100, 100), 5);
 
 		if (ciecie == 1) {
@@ -501,6 +548,9 @@ int main(void) {
 		if (przeciwnik == 1) {
 			al_draw_scaled_rotated_bitmap(kamien, 200, 200, pozx, pozy, 0.25, 0.25, pozx / 60 , NULL);
 		}
+
+		al_draw_scaled_rotated_bitmap(celownik, al_get_bitmap_width(celownik) / 2, al_get_bitmap_height(celownik) / 2, mysz.x, mysz.y, 0.2, 0.2, 0, NULL);
+
 		al_flip_display();
 
 		al_clear_to_color(al_map_rgb((int)(i*j/(j+i)*0.1) % 255, (int)(j*0.05) % 255, (int)(i *0.05) %255));
