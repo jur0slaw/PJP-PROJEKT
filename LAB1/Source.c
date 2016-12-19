@@ -11,6 +11,7 @@
 #define dash 500
 #define ratio 3000
 #define radius 400
+#define cut_anim 10
 
 struct enemy {
 	int istnienie;
@@ -24,9 +25,17 @@ struct enemy {
 	double odleglosc;
 };
 
+struct poz {
+	double x;
+	double y;
+	int flag;
+};
+
+typedef struct poz poz;
 typedef struct enemy enemy;
 
-int flag, last_flag;
+int flag;
+int last_flag=1;
 
 
 double i = screen_width*0.5;
@@ -54,10 +63,13 @@ double cut_end_y;
 double odleglosc;
 double A, B , C;
 double test_promien;
+int trigger_ciecia=0;
+double animator_ciecia = cut_anim;
+int trail_flag=0;
 
 enemy enemies[16];
 int ilosc_enemies=0;
-
+poz trail[6];
 
 void DoLogic(ALLEGRO_KEYBOARD_STATE stan, ALLEGRO_TIMER * timer , ALLEGRO_MOUSE_STATE mysz){
 
@@ -86,14 +98,17 @@ void DoLogic(ALLEGRO_KEYBOARD_STATE stan, ALLEGRO_TIMER * timer , ALLEGRO_MOUSE_
 		bylo = 0;
 	}
 		
+	
 
 	if (ruch == 1) {
+	
 		switch (flag) {
 		case 11: 
 			i += 4*step;
 			dystans += 4 * step;
 			if (dystans >= max) {
 				dystans = 0;
+				trail_flag = 1;
 				ruch = 0;
 				flag = -1;
 				
@@ -106,6 +121,7 @@ void DoLogic(ALLEGRO_KEYBOARD_STATE stan, ALLEGRO_TIMER * timer , ALLEGRO_MOUSE_
 			dystans += 4 * step;
 			if (dystans >= max) {
 				dystans = 0;
+				trail_flag = 1;
 				ruch = 0;
 				flag = -1;
 				
@@ -120,6 +136,8 @@ void DoLogic(ALLEGRO_KEYBOARD_STATE stan, ALLEGRO_TIMER * timer , ALLEGRO_MOUSE_
 	
 
 	//Ciecie
+
+	
 
 	if (mysz.buttons == 1  && ciecie == 0 && pow(mysz.x-i-50,2)+pow(mysz.y-j-50,2)<pow(radius,2)){
 		ciecie =  1;
@@ -142,12 +160,15 @@ void DoLogic(ALLEGRO_KEYBOARD_STATE stan, ALLEGRO_TIMER * timer , ALLEGRO_MOUSE_
 	}
 
 	if ((!mysz.buttons == 1 || !(pow(mysz.x - i-50, 2) + pow(mysz.y - j - 50, 2)<pow(radius, 2))) && ciecie == 1) {
+		
 		ciecie = 0;
 		for (k = 0; k < 16; k++) {
 			if (enemies[k].istnienie == 1) {
 				if (enemies[k].odleglosc < 55) {
 					enemies[k].istnienie = 0;
 					enemies[k].odleglosc = 999;
+					trigger_ciecia = 1;
+					animator_ciecia = cut_anim;
 					if (enemies[k].typ == 1) {
 						int p,r;
 						for (p = 0; p < 4; p++) {
@@ -415,6 +436,28 @@ void DoLogic(ALLEGRO_KEYBOARD_STATE stan, ALLEGRO_TIMER * timer , ALLEGRO_MOUSE_
 
 	//Zerowanie flag i zmienjszanie triggera
 
+	if (trigger_ciecia == 1 && animator_ciecia>0) {
+		animator_ciecia -= 0.01;
+		if (animator_ciecia <= 0) {
+			trigger_ciecia = 0;
+			animator_ciecia = 0;
+		}
+	}
+
+	if (ruch == 1 && trail_flag == 1) {
+		for (k = 0; k < 6; k++) {
+			if(flag==12){
+				trail[k].x = i - k * 500 / 6;
+			}
+			else {
+				trail[k].x = i + k * 500 / 6;
+			}
+			trail[k].flag = flag;
+
+		}
+		trail_flag = 0;
+	}
+
 	if (trigger > 0 && ruch == 0 ) {
 		trigger -= 0.8;
 	
@@ -459,15 +502,22 @@ int main(void) {
 	ALLEGRO_FONT *comic = al_load_ttf_font("comic.ttf", 40, NULL);
 	ALLEGRO_BITMAP *kappa = al_load_bitmap("epik.png");
 	ALLEGRO_BITMAP *kamien = al_load_bitmap("rock.png");
+	ALLEGRO_BITMAP *kamien2 = al_load_bitmap("rock2.png");
 	ALLEGRO_BITMAP *background = al_load_bitmap("background.jpg");
 	ALLEGRO_BITMAP *celownik = al_load_bitmap("celownik.png");
 	ALLEGRO_BITMAP *region;
 
+	ALLEGRO_TRANSFORM kamera;
+	al_set_target_backbuffer(okno);
+	al_identity_transform(&kamera);
+	
+	al_use_transform(&kamera);
 	ALLEGRO_KEYBOARD_STATE stan;
 	ALLEGRO_MOUSE_STATE mysz;
 	ALLEGRO_TIMER *timer = al_create_timer(ALLEGRO_BPS_TO_SECS(60));
 	al_convert_mask_to_alpha(kappa, al_map_rgb(255, 255, 255));
 	al_convert_mask_to_alpha(kamien, al_map_rgb(255, 255, 255));
+	al_convert_mask_to_alpha(kamien2, al_map_rgb(255, 255, 255));
 	al_convert_mask_to_alpha(celownik, al_map_rgb(0, 0, 0));
 
 	srand(time(NULL));
@@ -496,7 +546,30 @@ int main(void) {
 			lag -= ALLEGRO_BPS_TO_SECS(60);
 		}
 
-		al_draw_textf(comic, al_map_rgb(255, 0, 0), 1500, 1000, ALLEGRO_ALIGN_LEFT, "flaga %i", flag);
+		al_identity_transform(&kamera);
+		al_use_transform(&kamera);
+		al_set_blender(ALLEGRO_ADD, ALLEGRO_ONE, ALLEGRO_INVERSE_ALPHA);
+
+		if (trigger_ciecia == 1) {
+			al_set_blender(ALLEGRO_ADD, ALLEGRO_CONST_COLOR, ALLEGRO_ONE);
+			al_set_blend_color(al_map_rgba_f(0, 0.8*animator_ciecia / cut_anim, 1 * animator_ciecia / cut_anim, 0));
+
+			if (animator_ciecia > cut_anim*3/4) {
+				al_scale_transform(&kamera, 1 + 2/70 -(2/700)*animator_ciecia, 1 + 2 / 70 - (2 / 700)*animator_ciecia);
+				al_translate_transform(&kamera, screen_width*(2/70 * (2/700)*animator_ciecia), -screen_height*(2 / 70)* (2 / 700)*animator_ciecia);
+				al_use_transform(&kamera);
+				
+			}
+			else {
+				al_scale_transform(&kamera, 1 + animator_ciecia/700, 1 + animator_ciecia/700 );
+				al_translate_transform(&kamera, -screen_width*(animator_ciecia/700), -screen_height*(animator_ciecia/700));
+				al_use_transform(&kamera);
+				
+			}
+
+		}
+
+		
 		al_draw_textf(comic, al_map_rgb(255, 0, 0), 0, 0, ALLEGRO_ALIGN_LEFT, "Timer %i", al_get_timer_count(timer));
 		al_draw_textf(comic, al_map_rgb(255, 0, 0), 0, 1000, ALLEGRO_ALIGN_LEFT, "testpromien %f",test_promien);
 		al_draw_textf(comic, al_map_rgb(255, 0, 0), 500, 1000, ALLEGRO_ALIGN_LEFT, "Speed X %f", speed_x);
@@ -507,12 +580,22 @@ int main(void) {
 		
 		al_draw_bitmap_region(background, 0.5*al_get_bitmap_width(background)-0.5*screen_width+(i-screen_width*0.5)*((fabs(i - screen_width*0.5)/screen_width*0.5)), 0.5*al_get_bitmap_height(background) - 0.5*screen_height + (j - screen_height * 0.5)*((fabs(j-screen_height*0.5)/screen_height*0.5)), screen_width, screen_height, 0, 0, NULL);
 		
-		al_draw_textf(comic, al_map_rgb(255, 0, 0), 1500, 1000, ALLEGRO_ALIGN_LEFT, "flaga %i", last_flag);
+		al_draw_textf(comic, al_map_rgb(255, 255, 255), 1500, 1000, ALLEGRO_ALIGN_LEFT, "trigger ciecia %i", trigger_ciecia);
 		float height = al_get_bitmap_height(kappa);
 		float width = al_get_bitmap_width(kappa);
-		
+		int p;
 
-		
+		if (ruch == 1) {
+			for (p = 0; p < 6 && (trail[p].flag == 12 ? trail[p].x > i : trail[p].x < i ) ; p++) {
+				switch (last_flag) {
+				case 1: al_draw_tinted_scaled_bitmap(kappa, al_map_rgba_f(0.5,0.5, 0.5,0.5) , 0, 0, width / 7, height / 2, trail[p].x - 80, j - 32, 250, 125, NULL);
+					break;
+				case 2: al_draw_tinted_scaled_bitmap(kappa, al_map_rgba_f(0.5, 0.5, 0.5, 0.5),0, height / 2, width / 7, height / 2, trail[p].x - 80, j - 32, 250, 125, NULL);
+					break;
+				}
+			}
+		}
+
 		switch (flag%4) {
 		case -1: switch (last_flag) {
 					case 1: al_draw_scaled_bitmap(kappa, 0, 0, width / 7, height / 2, i - 80, j - 32, 250, 125, NULL);
@@ -533,14 +616,19 @@ int main(void) {
 		al_draw_circle(i + 50, j + 50, radius, al_map_rgb(100, 100, 100), 5);
 
 		if (ciecie == 1) {
-			al_draw_line(cut_start_x, cut_start_y, mysz.x, mysz.y, al_map_rgb((al_get_timer_count(timer)+100)%255, al_get_timer_count(timer) % 255, al_get_timer_count(timer) % 255),10);
+			al_draw_line(cut_start_x, cut_start_y, mysz.x, mysz.y, al_map_rgb(0, 150, 255),7);
 		}
 
 		if (ilosc_enemies > 0) {
 			int l;
 			for (l = 0; l < 16; l++) {
 				if (enemies[l].istnienie == 1) {
-					al_draw_scaled_rotated_bitmap(kamien, 200, 200, enemies[l].x, enemies[l].y, 0.25, 0.25, enemies[l].x/60, NULL);
+					switch (enemies[l].typ) {
+					case 0:	al_draw_scaled_rotated_bitmap(kamien, 200, 200, enemies[l].x, enemies[l].y, 0.25, 0.25, enemies[l].x / 60, NULL);
+						break;
+					case 1: al_draw_scaled_rotated_bitmap(kamien2, 200, 200, enemies[l].x, enemies[l].y, 0.25, 0.25, enemies[l].x / 60, NULL);
+						break;
+					}
 				}
 			}
 		}
@@ -553,7 +641,7 @@ int main(void) {
 
 		al_flip_display();
 
-		al_clear_to_color(al_map_rgb((int)(i*j/(j+i)*0.1) % 255, (int)(j*0.05) % 255, (int)(i *0.05) %255));
+		al_clear_to_color(al_map_rgb(0,0,0));
 
 
 

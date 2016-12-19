@@ -1,0 +1,91 @@
+* {margin: 0; font-family:Verdana, Tahoma, sans-serif;}
+body{background: #1f2c3d; color: #d9d9d9;}
+
+div.tytul {background: url('../img/header_bg.png') repeat-x; height: 27px; line-height: 27px; color: #1f2c3d; padding-left: 5px ;}
+div.podtytul {color: #b8c3c8;font-size: 12px;}
+div.odwiedziny {margin: 5px 0 5px 0; }
+
+ul {list-style: none; margin: 0; padding: 0}
+
+#strona {margin: 0 auto; width: 968px; height: 100%;}
+#strona #naglowek {width: 100%; height: 120px; margin-bottom: 5px; position: relative}
+#strona #naglowek #logo {width: 400px; height: 120px; position: absolute; left: 0px; top: 0px; background: url('../img/logo.png')}
+#strona #naglowek #polewyszukiwania {position: absolute; right: 0px; bottom: 0px;}
+#strona #menupoziome {background: url('../img/menu_bg.png') repeat-x; width: 100%; height: 33px; margin-bottom: 5px;}
+#strona #baner {background: #FF00FF; width: 100%; height: 200px;}
+
+/* Menu */
+
+
+#strona #menupoziome div.menu ul { margin: 0px; padding: 0px; list-style: none;}
+#strona #menupoziome div.menu li { display: inline; background: url('../img/menu_spl.png') repeat-y right; padding-right: 10px; padding-left: 10px; height: 33px; line-height: 33px; text-align: center;}
+#strona #menupoziome div.menu li a {color: #566165; text-decoration: none; font-weight: normal;}
+#strona #menupoziome div.menu li a:hover {color: #d9d9d9; text-decoration: none; font-weight: normal;}
+#strona #menupoziome div.menu li a:visited {color: #566165; text-decoration: none; font-weight: normal;}
+
+/* Główne ciało strony */
+
+#strona #cialo { width: 100%; min-height: 350px; overflow: visible;}
+#strona #cialo #menukategorii {float:left; width: 250px; left: 0px; top: 0px;}
+#strona #cialo #trescglowna {margin-left: 255px; width: 713px;}
+#stopka {margin-left: 255px; width: 713px; clear: both; text-align: center;}
+/*#stopka {margin: 0 auto; width: 968px; text-align: center; clear: both;}*/
+
+/* Lista kategorii */
+#strona #cialo #menukategorii div.tytul {margin-bottom: 3px;}
+#strona #cialo #menukategorii {color: #d9d9d9}
+#strona #cialo #menukategorii ul { margin-left: 32px; padding: 0px; list-style-image: url('../img/list_icon.png') }
+#strona #cialo #menukategorii ul li { border-bottom: 1px dotted #000000; }
+#strona #cialo #menukategorii ul li a { color: #e10303; text-decoration: none; font-weight: normal }
+#strona #cialo #menukategorii ul li a:hover { color: #e10303; text-decoration: none; font-weight: normal }
+#strona #cialo #menukategorii ul li a:visited { color: #e10303; text-decoration: none; font-weight: normal }
+
+#strona #cialo #trescglowna ul.lista_kategorii {list-style-image: url('../img/list_icon.png'); padding-left: 23px; margin-left: 50px; margin-top: 3px;}
+#strona #cialo #trescglowna ul.lista_kategorii li a { color: #d9d9d9; text-decoration: underline; font-weight: normal; }
+#strona #cialo #trescglowna ul.lista_kategorii li a:visited { color: #d9d9d9; text-decoration: underline; font-weight: normal; }
+#strona #cialo #trescglowna ul.lista_kategorii li a:hover { color: #d9d9d9; text-decoration: underline; font-weight: normal; }
+
+#strona #cialo #trescglowna ul.podlista_kategorii {list-style-image: url('../img/list_icon.png');}
+
+/* Lista kodów */
+#lista_kodow {width: 100%; border-collapse: collapse;}
+#lista_kodow thead tr td {font-size: 16px; color: #e10303; border-bottom: 1px solid black; padding-bottom: 5px;}
+
+/* Indeks kodów */
+
+table.indeks_rozwiazan { width: 100%;}
+table.indeks_rozwiazan a { color: #d9d9d9; text-decoration: underline; font-weight: normal;}
+table.indeks_rozwiazan a:visited { color: #d9d9d9; text-decoration: underline; font-weight: normal;}
+table.indeks_rozwiazan a:hover { color: #d9d9d9; text-decoration: underline; font-weight: normal;}
+table.indeks_rozwiazan thead tr th {color: #e10303; font-weight: normal;}
+table.indeks_rozwiazan .litera { background: #e9eced; height: 27px;}
+table.indeks_rozwiazan .litera tr th { background: #e9eced; height: 27px; color: #1f2c3d; /*rgb(86, 97, 101);*/ font-weight: normal;}
+table.indeks_rozwiazan .litera tr th { border-bottom: 5px solid #1f2c3d;border-top: 5px solid #1f2c3d;}
+table.indeks_rozwiazan .col_tytul {width: 50%}
+table.indeks_rozwiazan .col_kategoria {width: auto;}
+table.indeks_rozwiazan .col_wyswietlen {width: 50px;}
+
+.kontener_podkategorii {display: inline;}
+
+.rozwijacz {font-size: smaller; padding-left: 10px}
+
+a {color: #d9d9d9;}
+a:visited {color: #d9d9d9; }
+
+#lista_pytan li p {
+    display: inline;
+}
+
+#strony {margin: 20px 0 30px 0; font-size: smaller; color: #d9d9d9; text-align: center;}
+#strony a, #strony a:hover, #strony a:visited {margin: 20px 0 20px 0; color: #d9d9d9}
+
+#stopka {color: #d9d9d9; font-size: 14px}
+#stopka a, #stopka a:visited, #stopka a:hover {color: #e10303; font-size: 16px;}
+
+#odwiedziny_tresc {font-size: 14px; text-align: center;}
+
+hr.blog_separator {margin: 10px auto 10px auto;}
+
+#trescglowna h2 {font-size: 20px;}
+
+a.newcode {color: #3dbd16; }
