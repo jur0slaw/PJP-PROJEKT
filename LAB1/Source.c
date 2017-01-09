@@ -41,6 +41,7 @@ int last_flag=1;
 double i = screen_width*0.5;
 double j = screen_height*0.5;
 
+int menu = 1;
 int bylo = 0;
 double trigger = 0;
 int ruch = 0;
@@ -66,10 +67,11 @@ double test_promien;
 int trigger_ciecia=0;
 double animator_ciecia = cut_anim;
 int trail_flag=0;
-
+int punkty;
 enemy enemies[16];
 int ilosc_enemies=0;
 poz trail[6];
+int zycie = 1;
 
 void DoLogic(ALLEGRO_KEYBOARD_STATE stan, ALLEGRO_TIMER * timer , ALLEGRO_MOUSE_STATE mysz){
 
@@ -170,6 +172,7 @@ void DoLogic(ALLEGRO_KEYBOARD_STATE stan, ALLEGRO_TIMER * timer , ALLEGRO_MOUSE_
 					trigger_ciecia = 1;
 					animator_ciecia = cut_anim;
 					if (enemies[k].typ == 1) {
+						punkty += 20;
 						int p,r;
 						for (p = 0; p < 4; p++) {
 							r = 0;
@@ -204,6 +207,9 @@ void DoLogic(ALLEGRO_KEYBOARD_STATE stan, ALLEGRO_TIMER * timer , ALLEGRO_MOUSE_
 
 						ilosc_enemies += 4;
 					}
+					else {
+						punkty += 10;
+					}
 					ilosc_enemies--;
 				}
 			}
@@ -232,8 +238,8 @@ void DoLogic(ALLEGRO_KEYBOARD_STATE stan, ALLEGRO_TIMER * timer , ALLEGRO_MOUSE_
 
 	if (ilosc_enemies > 0) {	
 		for (k = 0; k < 16; k++) {
+			
 			if (enemies[k].istnienie == 1 && enemies[k].typ==0) {
-
 				enemies[k].x += enemies[k].speed_x;
 				enemies[k].y += enemies[k].speed_y;
 
@@ -255,6 +261,12 @@ void DoLogic(ALLEGRO_KEYBOARD_STATE stan, ALLEGRO_TIMER * timer , ALLEGRO_MOUSE_
 
 				}
 			}
+
+			if (enemies[k].istnienie == 1 && enemies[k].x < i + 110 && enemies[k].x > i - 110 && enemies[k].y < j + 25 && enemies[k].y > j - 26) {
+				zycie = 0;
+				menu = 1;
+			}
+
 		}
 	}
 
@@ -499,13 +511,17 @@ int main(void) {
 	}
 	
 
-	ALLEGRO_FONT *comic = al_load_ttf_font("comic.ttf", 40, NULL);
+	ALLEGRO_FONT *font = al_load_ttf_font("sofachrome rg.ttf", 25, NULL);
+	ALLEGRO_FONT *menu_font = al_load_ttf_font("sofachrome rg.ttf", 50, NULL);
 	ALLEGRO_BITMAP *kappa = al_load_bitmap("epik.png");
 	ALLEGRO_BITMAP *kamien = al_load_bitmap("rock.png");
 	ALLEGRO_BITMAP *kamien2 = al_load_bitmap("rock2.png");
 	ALLEGRO_BITMAP *background = al_load_bitmap("background.jpg");
 	ALLEGRO_BITMAP *celownik = al_load_bitmap("celownik.png");
 	ALLEGRO_BITMAP *region;
+	ALLEGRO_BITMAP *title = al_load_bitmap("title.png");
+	ALLEGRO_BITMAP *menu_bgd = al_load_bitmap("menu_bgd.jpg");
+
 
 	ALLEGRO_TRANSFORM kamera;
 	al_set_target_backbuffer(okno);
@@ -528,19 +544,96 @@ int main(void) {
 	al_get_mouse_state(&mysz);
 	al_hide_mouse_cursor(okno);
 
+	//Title Screen
+
+	while (al_get_timer_count(timer) < 500 ) {
+		al_get_keyboard_state(&stan);
+		al_draw_bitmap(title, 0,0, NULL);
+		al_scale_transform(&kamera, 1 + al_get_timer_count(timer)*0.000000001, 1 + al_get_timer_count(timer)*0.00000001);
+		al_translate_transform(&kamera, 0 - 2*al_get_timer_count(timer)*0.000000001*screen_width, 0 - 2*al_get_timer_count(timer)*0.00000001*screen_height);
+		al_vertical_shear_transform(&kamera,( 0.0000000628*cos(al_get_timer_count(timer) )/ (4 * 3.14)));
+		al_use_transform(&kamera);
+		al_flip_display(okno);
+		al_clear_to_color(al_map_rgb(0, 0, 0));
+		if (al_key_down(&stan, ALLEGRO_KEY_SPACE)) {
+			al_rest(0.2);
+			break;
+		}
+				
+			
+		
+	}
+
+	al_identity_transform(&kamera);
+	al_use_transform(&kamera);
+
+
+	//Deklaracja zmiennych potrzebnych do zegaru gry
+
 	double lag = 0;
 	double previous = al_get_timer_count(timer);
+	punkty = 0;
 
+
+	al_get_keyboard_state(&stan);
 	
-	while (!al_key_down(&stan, ALLEGRO_KEY_ESCAPE)) {
+	int gra = 1;
+	
+	while (gra==1) {
 		double start = al_get_timer_count(timer);
 		double elapsed = start - previous;
 		previous = start;
 		lag += elapsed;
 
+
+		if (al_key_down(&stan, ALLEGRO_KEY_SPACE )) {
+			menu = 1;
+			al_rest(0.2);
+			al_stop_timer(timer);
+
+		}
+		while (menu == 1 ) {
+			al_set_blender(ALLEGRO_ADD, ALLEGRO_ONE, ALLEGRO_INVERSE_ALPHA);
+			al_draw_bitmap(menu_bgd, 0, 0, NULL);
+	
+			al_draw_textf(menu_font, al_map_rgb(255, 255, 255), screen_width* 10/ 20, screen_height/3-200 , NULL, "New Game: SPACE");
+			
+	
+
+			al_draw_textf(menu_font, al_map_rgb(255, 255, 255), screen_width*10/ 20, screen_height*3/3-200, NULL, "Leave Game: ESC");
+			al_flip_display(okno);
+			al_clear_to_color(al_map_rgb(0, 0, 0));
+			al_get_keyboard_state(&stan);
+			if (al_key_down(&stan, ALLEGRO_KEY_ESCAPE)) {
+				menu = 0;
+				gra = 0;
+				al_rest(0.2);
+			}
+			if (al_key_down(&stan, ALLEGRO_KEY_SPACE)) {
+				j = screen_height / 2;
+				i = screen_width / 2;
+				speed_x = 0;
+				speed_y = 0;
+				int v;
+				for (v = 0; v < 16; v++) {
+					enemies[v].istnienie = 0;
+				}
+				ilosc_enemies = 0;
+				punkty = 0;
+				menu = 0;
+				zycie = 1;
+				al_rest(0.2); 
+				al_resume_timer(timer);
+				
+			}
+			
+
+
+		}
+
 		al_get_keyboard_state(&stan);
 		al_get_mouse_state(&mysz);
-	
+
 		while(lag >= ALLEGRO_BPS_TO_SECS(60)){
 			DoLogic(stan,timer,mysz);
 			lag -= ALLEGRO_BPS_TO_SECS(60);
@@ -570,17 +663,12 @@ int main(void) {
 		}
 
 		
-		al_draw_textf(comic, al_map_rgb(255, 0, 0), 0, 0, ALLEGRO_ALIGN_LEFT, "Timer %i", al_get_timer_count(timer));
-		al_draw_textf(comic, al_map_rgb(255, 0, 0), 0, 1000, ALLEGRO_ALIGN_LEFT, "testpromien %f",test_promien);
-		al_draw_textf(comic, al_map_rgb(255, 0, 0), 500, 1000, ALLEGRO_ALIGN_LEFT, "Speed X %f", speed_x);
-		al_draw_textf(comic, al_map_rgb(255, 0, 0), 900, 1000, ALLEGRO_ALIGN_LEFT, "Speed Y %f ", speed_y);
-		
 
 	
 		
 		al_draw_bitmap_region(background, 0.5*al_get_bitmap_width(background)-0.5*screen_width+(i-screen_width*0.5)*((fabs(i - screen_width*0.5)/screen_width*0.5)), 0.5*al_get_bitmap_height(background) - 0.5*screen_height + (j - screen_height * 0.5)*((fabs(j-screen_height*0.5)/screen_height*0.5)), screen_width, screen_height, 0, 0, NULL);
 		
-		al_draw_textf(comic, al_map_rgb(255, 255, 255), 1500, 1000, ALLEGRO_ALIGN_LEFT, "trigger ciecia %i", trigger_ciecia);
+		al_draw_textf(font, al_map_rgb(255, 255, 255), 1500, 1000, ALLEGRO_ALIGN_LEFT, "Score: %i", punkty);
 		float height = al_get_bitmap_height(kappa);
 		float width = al_get_bitmap_width(kappa);
 		int p;
@@ -650,7 +738,7 @@ int main(void) {
 	al_uninstall_keyboard;
 	al_destroy_display(okno);
 
-	al_destroy_font(comic);
+	al_destroy_font(font);
 
 
 
