@@ -3,7 +3,9 @@
 #include <allegro5\allegro_font.h>
 #include <allegro5\allegro_image.h>
 #include <allegro5\allegro_primitives.h>
+#include <allegro5\allegro_audio.h>
 #include <math.h>
+#include <allegro5\allegro_acodec.h>
 
 #define screen_width 1920
 #define screen_height 1080
@@ -72,8 +74,9 @@ enemy enemies[16];
 int ilosc_enemies=0;
 poz trail[6];
 int zycie = 1;
-
-void DoLogic(ALLEGRO_KEYBOARD_STATE stan, ALLEGRO_TIMER * timer , ALLEGRO_MOUSE_STATE mysz){
+float volume = 1;
+ 
+void DoLogic(ALLEGRO_KEYBOARD_STATE stan, ALLEGRO_TIMER * timer , ALLEGRO_MOUSE_STATE mysz, ALLEGRO_SAMPLE * death, ALLEGRO_SAMPLE *hit, ALLEGRO_SAMPLE * blowup){
 
 	if (i<0) {
 		speed_x = 0.001;
@@ -164,15 +167,17 @@ void DoLogic(ALLEGRO_KEYBOARD_STATE stan, ALLEGRO_TIMER * timer , ALLEGRO_MOUSE_
 	if ((!mysz.buttons == 1 || !(pow(mysz.x - i-50, 2) + pow(mysz.y - j - 50, 2)<pow(radius, 2))) && ciecie == 1) {
 		
 		ciecie = 0;
+		al_play_sample(hit, 1, 0.0, 1, ALLEGRO_PLAYMODE_ONCE, NULL);
 		for (k = 0; k < 16; k++) {
 			if (enemies[k].istnienie == 1) {
 				if (enemies[k].odleglosc < 55) {
+					al_play_sample(blowup, 1, 0.0, 1, ALLEGRO_PLAYMODE_ONCE, NULL);
 					enemies[k].istnienie = 0;
 					enemies[k].odleglosc = 999;
 					trigger_ciecia = 1;
 					animator_ciecia = cut_anim;
 					if (enemies[k].typ == 1) {
-						punkty += 20;
+						punkty += 70;
 						int p,r;
 						for (p = 0; p < 4; p++) {
 							r = 0;
@@ -262,21 +267,28 @@ void DoLogic(ALLEGRO_KEYBOARD_STATE stan, ALLEGRO_TIMER * timer , ALLEGRO_MOUSE_
 				}
 			}
 
-			if (enemies[k].istnienie == 1 && enemies[k].x < i + 110 && enemies[k].x > i - 110 && enemies[k].y < j + 25 && enemies[k].y > j - 26) {
+			if (enemies[k].istnienie == 1 && enemies[k].x < i + 170 && enemies[k].x > i - 80 && enemies[k].y < j + 93 && enemies[k].y > j - 32) {
+				
 				zycie = 0;
+				ilosc_enemies = 0;
 				menu = 1;
 			}
-
+			
 		}
+		if (zycie == 0) {
+			al_play_sample(death, 1, 0.0, 1.8, ALLEGRO_PLAYMODE_ONCE, NULL);
+		}
+		
 	}
 
-
+	
 	//Inicjalizacja przeciwnika
 
 
 
 	if ((int)al_get_timer_count(timer) % 60 == 0 && ilosc_enemies < 16 && bylo == 0) {
 			k=0;
+			al_add_timer_count(timer, 1);
 		while (enemies[k].istnienie == 1) {
 			k++;
 		}
@@ -499,6 +511,9 @@ int main(void) {
 	al_init_image_addon();
 	al_init_primitives_addon();
 	al_install_keyboard();
+	al_install_audio();
+	al_init_acodec_addon();
+	al_reserve_samples(24);
 
 	if (!al_install_mouse()) {
 		al_show_native_message_box(NULL, NULL, NULL, "ALLEGRO MOUSE FAIL", NULL, NULL);
@@ -521,7 +536,12 @@ int main(void) {
 	ALLEGRO_BITMAP *region;
 	ALLEGRO_BITMAP *title = al_load_bitmap("title.png");
 	ALLEGRO_BITMAP *menu_bgd = al_load_bitmap("menu_bgd.jpg");
-
+	ALLEGRO_SAMPLE *bgd_music = al_load_sample("fight.wav");
+	ALLEGRO_SAMPLE *death = al_load_sample("death.wav");
+	ALLEGRO_SAMPLE *hit = al_load_sample("hit.wav");
+	ALLEGRO_SAMPLE *blowup = al_load_sample("blowup.wav");
+	ALLEGRO_SAMPLE *title_music = al_load_sample("title.wav");
+	ALLEGRO_MIXER * mixer = al_get_default_mixer();
 
 	ALLEGRO_TRANSFORM kamera;
 	al_set_target_backbuffer(okno);
@@ -546,24 +566,43 @@ int main(void) {
 
 	//Title Screen
 
-	while (al_get_timer_count(timer) < 500 ) {
+
+	al_play_sample(title_music, 1, 0, 1, ALLEGRO_PLAYMODE_ONCE, NULL);
+	int time_flag = 0;
+
+	while (al_get_timer_count(timer) < 800 ) {
+
+		
 		al_get_keyboard_state(&stan);
 		al_draw_bitmap(title, 0,0, NULL);
+		
 		al_scale_transform(&kamera, 1 + al_get_timer_count(timer)*0.000000001, 1 + al_get_timer_count(timer)*0.00000001);
-		al_translate_transform(&kamera, 0 - 2*al_get_timer_count(timer)*0.000000001*screen_width, 0 - 2*al_get_timer_count(timer)*0.00000001*screen_height);
+		al_translate_transform(&kamera, 0 - al_get_timer_count(timer)*0.0000000002*screen_width, 0 - al_get_timer_count(timer)*0.000000002*screen_height);
 		al_vertical_shear_transform(&kamera,( 0.0000000628*cos(al_get_timer_count(timer) )/ (4 * 3.14)));
 		al_use_transform(&kamera);
+
+		if (al_get_timer_count(timer) < 200) {
+			al_draw_filled_rectangle(0, 0, screen_width, screen_height, al_map_rgba_f(0.0, 0.0, 0.0, 1.0 - 0.005*al_get_timer_count(timer)));
+
+		}
+
+		if (al_get_timer_count(timer) > 600) {
+			al_draw_filled_rectangle(0, 0, screen_width, screen_height, al_map_rgba_f(0.0, 0.0, 0.0,  0.005*(al_get_timer_count(timer)-600)));
+
+		}
+
 		al_flip_display(okno);
 		al_clear_to_color(al_map_rgb(0, 0, 0));
 		if (al_key_down(&stan, ALLEGRO_KEY_SPACE)) {
 			al_rest(0.2);
 			break;
 		}
-				
+			
 			
 		
 	}
 
+	
 	al_identity_transform(&kamera);
 	al_use_transform(&kamera);
 
@@ -578,13 +617,16 @@ int main(void) {
 	al_get_keyboard_state(&stan);
 	
 	int gra = 1;
-	
+	al_stop_samples();
+	al_play_sample(bgd_music, 1, 0.0, 1, ALLEGRO_PLAYMODE_LOOP, NULL);
+
 	while (gra==1) {
+		
 		double start = al_get_timer_count(timer);
 		double elapsed = start - previous;
 		previous = start;
 		lag += elapsed;
-
+		
 
 		if (al_key_down(&stan, ALLEGRO_KEY_SPACE )) {
 			menu = 1;
@@ -595,10 +637,13 @@ int main(void) {
 		while (menu == 1 ) {
 			al_set_blender(ALLEGRO_ADD, ALLEGRO_ONE, ALLEGRO_INVERSE_ALPHA);
 			al_draw_bitmap(menu_bgd, 0, 0, NULL);
-	
+			al_set_mixer_gain(mixer, 0.65*volume);
 			al_draw_textf(menu_font, al_map_rgb(255, 255, 255), screen_width* 10/ 20, screen_height/3-200 , NULL, "New Game: SPACE");
 			
-	
+			al_draw_textf(menu_font, al_map_rgb(255, 255, 255), screen_width * 2 / 20,2* screen_height / 3 - 200, NULL, "Volume = %1.1f (+/- keys)",volume);
+			if (punkty > 0) {
+				al_draw_textf(menu_font, al_map_rgb(255, 255, 255), screen_width * 2 / 20, screen_height * 3 / 3 - 200, NULL, "Score: %i",punkty);
+			}
 
 			al_draw_textf(menu_font, al_map_rgb(255, 255, 255), screen_width*10/ 20, screen_height*3/3-200, NULL, "Leave Game: ESC");
 			al_flip_display(okno);
@@ -609,6 +654,17 @@ int main(void) {
 				gra = 0;
 				al_rest(0.2);
 			}
+			if (al_key_down(&stan, ALLEGRO_KEY_PAD_PLUS)) {
+				if (volume < 1)
+					volume += 0.2;
+					al_rest(0.15);
+			}
+			if (al_key_down(&stan, ALLEGRO_KEY_PAD_MINUS)) {
+				if (volume > 0.1)
+					volume -= 0.2;
+					al_rest(0.15);
+			}
+
 			if (al_key_down(&stan, ALLEGRO_KEY_SPACE)) {
 				j = screen_height / 2;
 				i = screen_width / 2;
@@ -621,6 +677,7 @@ int main(void) {
 				ilosc_enemies = 0;
 				punkty = 0;
 				menu = 0;
+				time_flag = 0;
 				zycie = 1;
 				al_rest(0.2); 
 				al_resume_timer(timer);
@@ -635,13 +692,19 @@ int main(void) {
 		al_get_mouse_state(&mysz);
 
 		while(lag >= ALLEGRO_BPS_TO_SECS(60)){
-			DoLogic(stan,timer,mysz);
+			DoLogic(stan,timer,mysz,death,hit,blowup);	
 			lag -= ALLEGRO_BPS_TO_SECS(60);
 		}
+		if (al_get_timer_count(timer)%61==0)  {
+			al_add_timer_count(timer,1);
+			punkty += 1;
+		}
+		
 
 		al_identity_transform(&kamera);
 		al_use_transform(&kamera);
 		al_set_blender(ALLEGRO_ADD, ALLEGRO_ONE, ALLEGRO_INVERSE_ALPHA);
+		al_set_mixer_gain(mixer, 1*volume);
 
 		if (trigger_ciecia == 1) {
 			al_set_blender(ALLEGRO_ADD, ALLEGRO_CONST_COLOR, ALLEGRO_ONE);
@@ -664,7 +727,7 @@ int main(void) {
 
 		
 
-	
+		
 		
 		al_draw_bitmap_region(background, 0.5*al_get_bitmap_width(background)-0.5*screen_width+(i-screen_width*0.5)*((fabs(i - screen_width*0.5)/screen_width*0.5)), 0.5*al_get_bitmap_height(background) - 0.5*screen_height + (j - screen_height * 0.5)*((fabs(j-screen_height*0.5)/screen_height*0.5)), screen_width, screen_height, 0, 0, NULL);
 		
@@ -683,6 +746,7 @@ int main(void) {
 				}
 			}
 		}
+		//al_draw_rectangle(i - 80, j - 32, i + 170, j + 93,al_map_rgb(0,0,0),10);
 
 		switch (flag%4) {
 		case -1: switch (last_flag) {

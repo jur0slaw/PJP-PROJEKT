@@ -75,6 +75,8 @@
     <Allegro_AddonFont>true</Allegro_AddonFont>
     <Allegro_AddonImage>true</Allegro_AddonImage>
     <Allegro_AddonPrimitives>true</Allegro_AddonPrimitives>
+    <Allegro_AddonAudio>true</Allegro_AddonAudio>
+    <Allegro_AddonAcodec>true</Allegro_AddonAcodec>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
